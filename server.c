@@ -17,7 +17,6 @@ int main(void)
  
   char sendBuff[1024];  
   char recvBuff[1024];
-  int numrv;  
  
   listenfd = socket(AF_INET, SOCK_STREAM, 0);
   printf("socket retrieve success\n");
@@ -40,13 +39,23 @@ int main(void)
   }
 
   while(1)
-    {      
+    {
       connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
-      read(connfd, recvBuff, sizeof(recvBuff)-1);
-      strcpy(sendBuff, "recieved");
+      //read(connfd, recvBuff, sizeof(recvBuff)-1);
+      //strcpy(sendBuff, recvBuff);
+      strcpy(sendBuff, "inputFile.txt");
       write(connfd, sendBuff, sizeof(sendBuff)-1);
-      close(connfd); 
-      printf("%s",recvBuff);
+      printf("Sending %s",sendBuff);
+      FILE *inputFile = fopen("inputFile.txt", "r");
+      
+      int bytesRead = fread(sendBuff, 1, 1, inputFile);
+      while(!feof(inputFile))
+      {
+        send(connfd, sendBuff, bytesRead, 0);
+        bytesRead = fread(sendBuff, 1, 1, inputFile);
+      }
+
+      close(connfd);
       sleep(1);
     }
 

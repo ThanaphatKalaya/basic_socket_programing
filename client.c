@@ -33,12 +33,22 @@ int main(void)
     }
 
   char massage[1024] = "";
-  printf("Send to server : ");
-  fgets(massage,1024,stdin);
-  strcpy(sendBuff, massage);
-  write(sockfd, sendBuff, sizeof(sendBuff)-1);
+  //printf("Get file from server : ");
+  //fgets(massage,1024,stdin);
+  //strcpy(sendBuff, massage);
+  //write(sockfd, sendBuff, sizeof(sendBuff)-1);
   read(sockfd, recvBuff, sizeof(recvBuff)-1);
-  printf("%s\n",recvBuff);
+  printf("reciving %s\n",recvBuff);
+  char outputPath[7] = "output/";
+  strcat( outputPath, recvBuff);
+  FILE *outputFile = fopen(outputPath, "w");
+  int bytesReceived = recv(sockfd, recvBuff, 10, 0);
+  while(bytesReceived != 0)
+    {
+      fwrite(recvBuff, bytesReceived, 1, outputFile);
+      bytesReceived = recv(sockfd, recvBuff, 10, 0);
+    }
+
   close(sockfd);
  
   return 0;
