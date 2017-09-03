@@ -32,24 +32,43 @@ int main(void)
       return 1;
     }
 
-  char massage[1024] = "";
+  //char massage[1024] = "";
   //printf("Get file from server : ");
   //fgets(massage,1024,stdin);
   //strcpy(sendBuff, massage);
   //write(sockfd, sendBuff, sizeof(sendBuff)-1);
   read(sockfd, recvBuff, sizeof(recvBuff)-1);
   printf("reciving %s\n",recvBuff);
-  char outputPath[7] = "output/";
-  strcat( outputPath, recvBuff);
+  char outputPath[1024] = "output/";
+  strcat(outputPath, recvBuff);
+  printf("saving file to \"%s\"\n",outputPath);
   FILE *outputFile = fopen(outputPath, "w");
+  read(sockfd, recvBuff, sizeof(recvBuff)-1);
+  char md5[33];
+  strcpy(md5, recvBuff);
+  printf("md5[sv]: %s\n",md5);
   int bytesReceived = recv(sockfd, recvBuff, 10, 0);
   while(bytesReceived != 0)
     {
       fwrite(recvBuff, bytesReceived, 1, outputFile);
       bytesReceived = recv(sockfd, recvBuff, 10, 0);
     }
-
+  fclose(outputFile);
   close(sockfd);
- 
+  
+  char md5cl[33];
+  FILE *pipe;
+  int len;
+  char cmd[256] = "md5sum ";
+  strcat(cmd,outputPath);
+  pipe = popen(cmd, "r");
+  if (NULL == pipe) {
+    perror("pipe");
+    exit(1);
+  }
+  fgets(md5cl, 33, pipe);
+  pclose(pipe);
+  printf("md5[cl]: %s\n",md5cl);
+  
   return 0;
 }

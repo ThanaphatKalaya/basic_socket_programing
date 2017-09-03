@@ -43,18 +43,33 @@ int main(void)
       connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
       //read(connfd, recvBuff, sizeof(recvBuff)-1);
       //strcpy(sendBuff, recvBuff);
-      strcpy(sendBuff, "inputFile.txt");
+      char input[1024] = "test.png";
+      strcpy(sendBuff, input);
+      printf("Sending %s\n",input);
       write(connfd, sendBuff, sizeof(sendBuff)-1);
-      printf("Sending %s",sendBuff);
-      FILE *inputFile = fopen("inputFile.txt", "r");
-      
+      char md5[33];
+      FILE *pipe;
+      int len;
+      char cmd[256] = "md5sum ";
+      strcat(cmd,input);
+      pipe = popen(cmd, "r");
+      if (NULL == pipe) {
+        perror("pipe");
+        exit(1);
+      }
+      fgets(md5, 33, pipe);
+      pclose(pipe);
+      printf("md5: %s\n",md5);
+      strcpy(sendBuff, md5);
+      write(connfd, sendBuff, sizeof(sendBuff)-1);
+      FILE *inputFile = fopen("test.png", "r");
       int bytesRead = fread(sendBuff, 1, 1, inputFile);
       while(!feof(inputFile))
       {
         send(connfd, sendBuff, bytesRead, 0);
         bytesRead = fread(sendBuff, 1, 1, inputFile);
       }
-
+      fclose(inputFile);
       close(connfd);
       sleep(1);
     }
