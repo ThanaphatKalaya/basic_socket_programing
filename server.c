@@ -43,7 +43,7 @@ int main(void)
       connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
       //read(connfd, recvBuff, sizeof(recvBuff)-1);
       //strcpy(sendBuff, recvBuff);
-      char input[1024] = "test.png";
+      char input[1024] = "test.pdf";
       strcpy(sendBuff, input);
       printf("Sending %s\n",input);
       write(connfd, sendBuff, sizeof(sendBuff)-1);
@@ -62,7 +62,7 @@ int main(void)
       printf("md5: %s\n",md5);
       strcpy(sendBuff, md5);
       write(connfd, sendBuff, sizeof(sendBuff)-1);
-      FILE *inputFile = fopen("test.png", "r");
+      FILE *inputFile = fopen("test.pdf", "r");
       int bytesRead = fread(sendBuff, 1, 1, inputFile);
       while(!feof(inputFile))
       {
