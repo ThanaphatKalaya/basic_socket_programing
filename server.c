@@ -43,7 +43,7 @@ int main(void)
       connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
       //read(connfd, recvBuff, sizeof(recvBuff)-1);
       //strcpy(sendBuff, recvBuff);
-      char input[1024] = "test.pdf";
+      char input[1024] = "ubuntu-16.04.3-desktop-amd64.iso";
       strcpy(sendBuff, input);
       printf("Sending %s\n",input);
       write(connfd, sendBuff, sizeof(sendBuff)-1);
@@ -62,15 +62,32 @@ int main(void)
       printf("md5: %s\n",md5);
       strcpy(sendBuff, md5);
       write(connfd, sendBuff, sizeof(sendBuff)-1);
-      FILE *inputFile = fopen("test.pdf", "r");
-      int bytesRead = fread(sendBuff, 1, 1, inputFile);
-      while(!feof(inputFile))
-      {
+      FILE *inputFile = fopen(input, "r");
+      fseek(inputFile, 0, SEEK_END);
+      long int fileSize = ftell(inputFile);
+      long int pointer,remain;
+      fseek(inputFile, 0, SEEK_SET);
+      int bytesRead;
+      if (fileSize < 1024){
+        bytesRead = fread(sendBuff, 1, fileSize, inputFile);
+      }else{
+        bytesRead = fread(sendBuff, 1, 1024, inputFile);
+      }
+      while(!feof(inputFile)){
         send(connfd, sendBuff, bytesRead, 0);
-        bytesRead = fread(sendBuff, 1, 1, inputFile);
+        pointer = ftell(inputFile);
+        remain = fileSize - pointer;
+        if(remain==0){
+          bytesRead = fread(sendBuff, 1, 1, inputFile);
+        }else if(remain<1024){
+          bytesRead = fread(sendBuff, 1, remain, inputFile);
+        }else{
+          bytesRead = fread(sendBuff, 1, 1024, inputFile);
+        }
       }
       fclose(inputFile);
       close(connfd);
+      printf("Send finished\n");
       sleep(1);
     }
 

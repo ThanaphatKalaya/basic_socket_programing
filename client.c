@@ -47,11 +47,11 @@ int main(void)
   char md5[33];
   strcpy(md5, recvBuff);
   printf("md5[sv]: %s\n",md5);
-  int bytesReceived = recv(sockfd, recvBuff, 10, 0);
+  int bytesReceived = recv(sockfd, recvBuff, 1, 0);
   while(bytesReceived != 0)
     {
       fwrite(recvBuff, bytesReceived, 1, outputFile);
-      bytesReceived = recv(sockfd, recvBuff, 10, 0);
+      bytesReceived = recv(sockfd, recvBuff, 1, 0);
     }
   fclose(outputFile);
   close(sockfd);
@@ -59,7 +59,7 @@ int main(void)
   char md5cl[33];
   FILE *pipe;
   int len;
-  char cmd[256] = "md5sum ";
+  char cmd[1024] = "md5sum ";
   strcat(cmd,outputPath);
   pipe = popen(cmd, "r");
   if (NULL == pipe) {
