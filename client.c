@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <openssl/md5.h>
 
 int main(void)
 {
@@ -42,33 +43,39 @@ int main(void)
   char outputPath[1024] = "output/";
   strcat(outputPath, recvBuff);
   printf("saving file to \"%s\"\n",outputPath);
-  FILE *outputFile = fopen(outputPath, "w");
   read(sockfd, recvBuff, sizeof(recvBuff)-1);
-  char md5[33];
-  strcpy(md5, recvBuff);
-  printf("md5[sv]: %s\n",md5);
-  int bytesReceived = recv(sockfd, recvBuff, 1, 0);
-  while(bytesReceived != 0)
-    {
-      fwrite(recvBuff, bytesReceived, 1, outputFile);
-      bytesReceived = recv(sockfd, recvBuff, 1, 0);
-    }
-  fclose(outputFile);
-  close(sockfd);
-  
-  char md5cl[33];
-  FILE *pipe;
-  int len;
-  char cmd[1024] = "md5sum ";
-  strcat(cmd,outputPath);
-  pipe = popen(cmd, "r");
-  if (NULL == pipe) {
-    perror("pipe");
-    exit(1);
+  long int fileSize = atol(recvBuff);
+  printf("File size: %ld bytes\n",fileSize);
+  FILE *outputFile = fopen(outputPath, "w");
+  long int bytesReceived = 0;
+  long int totalReceived = 0;
+  unsigned char md5[MD5_DIGEST_LENGTH];
+  MD5_CTX ctx;
+  MD5_Init(&ctx);
+  while(totalReceived<fileSize)
+  {
+    bytesReceived = recv(sockfd, recvBuff, 1, 0);
+    fwrite(recvBuff, bytesReceived, 1, outputFile);
+    totalReceived += bytesReceived;
+    MD5_Update(&ctx, recvBuff, 1);
+    //printf("Reciving %ld/%ld\n",totalReceived,fileSize);
   }
-  fgets(md5cl, 33, pipe);
-  pclose(pipe);
-  printf("md5[cl]: %s\n",md5cl);
+  MD5_Final(md5, &ctx);
+  fclose(outputFile);
   
+  char md5sv[32];
+  read(sockfd, recvBuff, sizeof(recvBuff)-1);
+  strcpy(md5sv, recvBuff);
+  md5sv[32] = '\0';
+  close(sockfd);
+  printf("md5[sv]: %s\n",md5sv);
+  
+  char result_md5[32] = "";
+  char temp[2] = "";
+  for(int i = 0; i < MD5_DIGEST_LENGTH; i++){
+    sprintf(temp, "%02x", md5[i]);
+    strcat(result_md5,temp);
+  }
+  printf("md5[cl]: %s\n",result_md5);
   return 0;
 }

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <openssl/md5.h>
  
 int main(void)
 {
@@ -43,35 +44,28 @@ int main(void)
       connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
       //read(connfd, recvBuff, sizeof(recvBuff)-1);
       //strcpy(sendBuff, recvBuff);
-      char input[1024] = "ubuntu-16.04.3-desktop-amd64.iso";
+      char input[1024] = "test.png";
       strcpy(sendBuff, input);
       printf("Sending %s\n",input);
-      write(connfd, sendBuff, sizeof(sendBuff)-1);
-      char md5[33];
-      FILE *pipe;
-      int len;
-      char cmd[256] = "md5sum ";
-      strcat(cmd,input);
-      pipe = popen(cmd, "r");
-      if (NULL == pipe) {
-        perror("pipe");
-        exit(1);
-      }
-      fgets(md5, 33, pipe);
-      pclose(pipe);
-      printf("md5: %s\n",md5);
-      strcpy(sendBuff, md5);
       write(connfd, sendBuff, sizeof(sendBuff)-1);
       FILE *inputFile = fopen(input, "r");
       fseek(inputFile, 0, SEEK_END);
       long int fileSize = ftell(inputFile);
+      printf("File size: %ld bytes\n",fileSize);
+      sprintf(sendBuff, "%ld", fileSize);
+      write(connfd, sendBuff, sizeof(sendBuff)-1);
       long int pointer,remain;
+      unsigned char md5[MD5_DIGEST_LENGTH];
+      MD5_CTX ctx;
+      MD5_Init(&ctx);
       fseek(inputFile, 0, SEEK_SET);
       int bytesRead;
       if (fileSize < 1024){
         bytesRead = fread(sendBuff, 1, fileSize, inputFile);
+        MD5_Update(&ctx, sendBuff, fileSize);
       }else{
         bytesRead = fread(sendBuff, 1, 1024, inputFile);
+        MD5_Update(&ctx, sendBuff, 1024);
       }
       while(!feof(inputFile)){
         send(connfd, sendBuff, bytesRead, 0);
@@ -79,14 +73,25 @@ int main(void)
         remain = fileSize - pointer;
         if(remain==0){
           bytesRead = fread(sendBuff, 1, 1, inputFile);
+          MD5_Final(md5, &ctx);
         }else if(remain<1024){
           bytesRead = fread(sendBuff, 1, remain, inputFile);
+          MD5_Update(&ctx, sendBuff, remain);
         }else{
           bytesRead = fread(sendBuff, 1, 1024, inputFile);
+          MD5_Update(&ctx, sendBuff, 1024);
         }
       }
       fclose(inputFile);
+      char result_md5[32] = "";
+      char temp[2] = "";
+      for(int i = 0; i < MD5_DIGEST_LENGTH; i++){
+        sprintf(temp, "%02x", md5[i]);
+        strcat(result_md5,temp);
+      }
+      write(connfd, result_md5, 32);
       close(connfd);
+      printf("md5[sv]: %s\n",result_md5);
       printf("Send finished\n");
       sleep(1);
     }
